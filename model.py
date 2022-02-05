@@ -49,7 +49,7 @@ class Spectral_transform_block(nn.Module):
         return x
 
 class FFC_block(nn.Module):
-    def __init__(self, n_channels, global_percent):
+    def __init__(self, n_channels, global_percent, experiment):
         super(FFC_block, self).__init__()
         #I added the possibility to have different out_channels
 
@@ -61,8 +61,10 @@ class FFC_block(nn.Module):
 
         #definition of layers
         self.conv_ll = nn.Conv2d(in_channels_local, out_channels_local, kernel_size=3, padding='same', bias=True)
-        #self.conv_lg = nn.Conv2d(in_channels_local, out_channels_global, kernel_size=3, padding='same', bias=True)
-        self.conv_lg = Spectral_transform_block(in_channels_local, out_channels_global, out_channels_global//2, 1)
+        if experiment == 'conv_change':
+            self.conv_lg = Spectral_transform_block(in_channels_local, out_channels_global, out_channels_global//2, 1)
+        else:
+            self.conv_lg = nn.Conv2d(in_channels_local, out_channels_global, kernel_size=3, padding='same', bias=True)
         self.conv_gl = nn.Conv2d(in_channels_global, out_channels_local, kernel_size=3, padding='same', bias=True)
 
         ## changing hidden dimension size channels_global//2 like in original implementation
@@ -101,10 +103,10 @@ class FFC_block(nn.Module):
         return x
 
 class FFC_conv_residual_block(nn.Module):
-    def __init__(self, n_channels, global_percent):
+    def __init__(self, n_channels, global_percent, experiment):
         super(FFC_conv_residual_block, self).__init__()
         #definition of layers
-        self.conv = FFC_block(n_channels, global_percent)
+        self.conv = FFC_block(n_channels, global_percent, experiment)
 
     def forward(self, x):
 
@@ -116,7 +118,7 @@ class FFC_conv_residual_block(nn.Module):
 
 
 class Lama(nn.Module):
-    def __init__(self, channels_in=4, channels_out=3, down_steps=3, up_steps=3, base_mult=64, n_ffc_residual=9, global_percent=0.6):
+    def __init__(self, experiment='baseline', channels_in=4, channels_out=3, down_steps=3, up_steps=3, base_mult=64, n_ffc_residual=9, global_percent=0.6):
         super(Lama, self).__init__()
 
         down = [nn.ReflectionPad2d(3),
@@ -132,7 +134,7 @@ class Lama(nn.Module):
 
         ffcs = []
         for idx in range(n_ffc_residual):
-            ffcs.append(FFC_conv_residual_block(n_channels*2, global_percent))
+            ffcs.append(FFC_conv_residual_block(n_channels*2, global_percent, experiment))
         self.ffcs = nn.Sequential(*ffcs)
 
         up = []
