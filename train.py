@@ -3,7 +3,10 @@ from tqdm import tqdm
 from utils import saving_image, saving_model
 
 
-def train_loop(model,optimizer_g,optimizer_d,train_dataloader,test_dataloader,LAMA_loss,device,start_epoch=0,epochs=50,val_rate = 10,sav_rate=200,verbose = True,display_results = True):
+def train_loop(model, optimizer_g, optimizer_d, train_dataloader,
+               test_dataloader, LAMA_loss, device, model_base_dir, image_base_dir,
+               start_epoch=0, epochs=50, val_rate=10, sav_rate=200, verbose=True,
+               display_results=True):
     """Training loop function
     params :
     -- model : LaMa model
@@ -83,16 +86,16 @@ def train_loop(model,optimizer_g,optimizer_d,train_dataloader,test_dataloader,LA
 
                 if display_results and i%100 == 0:
                     image_reconstructed = image_reconstructed.detach().cpu()
-                    saving_image(image_reconstructed,epoch) #save image image
+                    saving_image(image_reconstructed,epoch,image_base_dir) #save image image
 
 
 
                 #####################################################################
                 if i % sav_rate == 0 :
-                    saving_model(model,epoch+1,i)
+                    saving_model(model,epoch+1,i,model_base_dir)
 
 
 
-    saving_model(model,'final',0)
+    saving_model(model,'final',0,model_base_dir)
 
     print('################ TRAINING FINISHED ################')
