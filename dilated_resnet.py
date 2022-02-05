@@ -11,6 +11,7 @@ try:
 except ImportError:
     from urllib.request import urlretrieve
 
+import torch
 import torch.nn as nn
 from torch.nn import BatchNorm2d
 
@@ -174,14 +175,14 @@ class ResNet(nn.Module):
         return x
 
 
-def resnet50(pretrained=False, **kwargs):
+def resnet50(pretrained=False, device=None, **kwargs):
     """Constructs a ResNet-50 model.
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(load_url(model_urls['resnet50']), strict=False)
+        model.load_state_dict(load_url(model_urls['resnet50'], map_location=device), strict=False)
     return model
 
 # Resnet Dilated

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision
 
 from dilated_resnet import resnet50, ResnetDilated
 
@@ -31,16 +32,17 @@ class Discriminator(nn.Module):
 
 
 class Loss(nn.Module):
-    def __init__(self, kappa, alpha, beta, gamma):
+    def __init__(self, kappa, alpha, beta, gamma, device):
         super(Loss, self).__init__()
-        self.init_adversarial()
-        self.init_perceptual()
-        self.init_hrf_perceptual()
-
         self.kappa = kappa
         self.alpha = alpha
         self.beta = beta
         self.gamma = gamma
+        self.device = device
+
+        self.init_adversarial()
+        self.init_perceptual()
+        self.init_hrf_perceptual()
 
     def forward(self, img, target_img, mask, net_type):
         target_img = target_img/target_img.max()
@@ -51,15 +53,11 @@ class Loss(nn.Module):
         adv_loss = self.kappa*self.adversarial(img, target_img, mask, net_type=net_type)[0]
         hrfp = self.alpha*self.hrf_perceptual(img, target_img)
         perceptual_loss = self.beta*self.perceptual(img, target_img,mask)
+
         return adv_loss,hrfp,perceptual_loss,adv_loss+hrfp+perceptual_loss
 
-        #return self.kappa*self.adversarial(img, target_img, mask, net_type=net_type)[0] +\
-        #       self.alpha*self.hrf_perceptual(img, target_img) +\
-        #       self.beta*self.perceptual(img, target_img,mask)
-               #self.beta*self.perceptual(img, target_img) # i changed according to the modification i made
-
     def init_adversarial(self):
-        self.disc = Discriminator().to(device) ### i added to device in order to work on the same device (LAMA and Backbones for loss calculation)
+        self.disc = Discriminator().to(self.device)
 
     def adversarial(self, img, target_img, mask, net_type):
         if net_type == 'discriminator':
@@ -78,12 +76,11 @@ class Loss(nn.Module):
             raise ValueError('Unknown net_type')
 
         small_mask = F.interpolate(mask, size=img_loss.shape[-2:], mode='bilinear', align_corners=False)
-        img_loss = img_loss*small_mask # I only try to penalize the regions outside the mask???
+        img_loss = img_loss*small_mask
 
         if net_type == 'generator':
             return img_loss.mean(), None
 
-        #net_type == 'discriminator'
         img_loss += (1-small_mask)*F.softplus(-img_disc_pred)
         adv_loss = (img_loss + target_img_loss).mean()
 
@@ -97,8 +94,8 @@ class Loss(nn.Module):
         return (torch.square(grad.reshape((grad.shape[0], -1)).norm(2, dim=1))).mean()
 
     def init_hrf_perceptual(self):
-        orig_resnet = resnet50(pretrained=True)
-        self.net_encoder = ResnetDilated(orig_resnet, dilate_scale=8).to(device)### i added to device in order to work on the same device (LAMA and Backbones for loss calculation)
+        orig_resnet = resnet50(pretrained=True, device=self.device)
+        self.net_encoder = ResnetDilated(orig_resnet, dilate_scale=8).to(self.device)
 
         for param in self.net_encoder.parameters():
             param.require_grad = False
@@ -113,15 +110,14 @@ class Loss(nn.Module):
         return loss
 
     def init_perceptual(self):
-        self.vgg_layers = torchvision.models.vgg19(pretrained=True).features.to(device) ### i added to device in order to work on the same device (LAMA and Backbones for loss calculation)
+        self.vgg_layers = torchvision.models.vgg19(pretrained=True).features.to(self.device)
 
         for param in self.vgg_layers.parameters():
             param.require_grad = False
 
-    #def perceptual(self, img, target_img):
-    def perceptual(self, img, target_img,mask): #i changed to use mask variable
+    def perceptual(self, img, target_img,mask):
 
-        loss = torch.zeros(img.shape[0]).to(device) ### i added to device in order to work on the same device
+        loss = torch.zeros(img.shape[0]).to(self.device)
         cnt = 0
         for idx, module in self.vgg_layers._modules.items():
             img = module(img)
@@ -130,11 +126,6 @@ class Loss(nn.Module):
             if module.__class__.__name__ == 'ReLU':
                 part_loss = F.mse_loss(img, target_img, reduction='none')
 
-                #Does it make sense to use the mask in the perceptual loss?
-                #small_mask = F.interpolate(mask, size=img.shape[-2:], mode='bilinear', align_corners=False)
-                #part_loss = part_loss * (1 - small_mask)
-
-                # Watch out for overflow in the loss variable since division is made in the end
                 loss += part_loss.mean(dim=tuple(range(4)[1:]))
                 cnt += 1
 

@@ -4,6 +4,7 @@ import torch
 import numpy as np
 from numpy.random import uniform
 import matplotlib.pyplot as plt
+from torch.utils.data import Dataset
 
 
 def gen_large_mask_v2(img_h, img_w, marg=10):
@@ -96,10 +97,11 @@ def generate_stack(image, normalize = True):
 
 class MyDataset(Dataset):
     def __init__(self, data_paths):
-        self.paths = [f for f in os.listdir(data_paths) if os.path.isfile(f)] #getting name of all images in path to access with index
+        self.base_dir = data_paths
+        self.paths = [f for f in os.listdir(data_paths) if os.path.isfile(data_paths+'/'+f)] #getting name of all images in path to access with index
 
     def __getitem__(self, index):
-        image = load_images(self.paths[index]) # load image as np.array
+        image = load_images(self.base_dir+'/'+self.paths[index]) # load image as np.array
         stack = generate_stack(image,normalize=True) #function that generates masked image + mask pattern
 
         x = torch.FloatTensor(stack) # input of model is stack

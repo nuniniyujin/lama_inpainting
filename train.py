@@ -1,10 +1,9 @@
 from tqdm import tqdm
 
-from loss import Loss
 from utils import saving_image, saving_model
 
 
-def train_loop(model,optimizer_g,optimizer_d,train_dataloader,test_dataloader,start_epoch=0,epochs=50,val_rate = 10,sav_rate=200,verbose = True,display_results = True):
+def train_loop(model,optimizer_g,optimizer_d,train_dataloader,test_dataloader,LAMA_loss,device,start_epoch=0,epochs=50,val_rate = 10,sav_rate=200,verbose = True,display_results = True):
     """Training loop function
     params :
     -- model : LaMa model
