@@ -47,7 +47,7 @@ parser.add_argument('--start_epoch', type=int, default=0,
                     help='Start from this epoch (use when the train is resumed from a checkpoint)')
 
 # Choose experiment
-parser.add_argument('--experiment', type=str, default='baseline', choices=['baseline', 'conv_change', 'wgan']
+parser.add_argument('--experiment', type=str, default='baseline', choices=['baseline', 'conv_change', 'wgan'],
                     help='Choose between experiments [baseline, conv_change, wgan]')
 
 
@@ -80,8 +80,8 @@ train_dataloader = DataLoader(MyDataset(args.data_path), batch_size=args.batch_s
 if args.experiment == 'wgan':    
     train_loop_Wassertstein(LAMA_Model, optimizer_g, optimizer_d,
                             train_dataloader, train_dataloader, LAMA_loss,
-                            device, args.model_base_dir, sav_rate=1000,
-                            disc_iter=5, clip_weights=False)
+                            device, args.model_base_dir, args.image_base_dir,
+                            sav_rate=1000, disc_iter=5, clip_weights=False)
 else:
     train_loop(LAMA_Model, optimizer_g, optimizer_d, train_dataloader,
                train_dataloader, LAMA_loss, device, args.model_base_dir,

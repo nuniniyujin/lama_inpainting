@@ -106,7 +106,7 @@ class MyDataset(Dataset):
 
         x = torch.FloatTensor(stack) # input of model is stack
         x = x.permute(2,0,1)
-        y = torch.FloatTensor(image) # GT is original image
+        y = torch.FloatTensor(image.copy()) # GT is original image
         y = y.permute(2,0,1)
 
         return x, y

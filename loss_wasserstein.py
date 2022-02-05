@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision
 from dilated_resnet import resnet50, ResnetDilated
 
 from torch.nn.modules import distance
@@ -10,7 +11,7 @@ class Discriminator_Critic(nn.Module):
         super().__init__()
         disc = [nn.Conv2d(channels_in, base_mult, kernel_size=4, stride=2, padding=2,bias=False),
                  nn.LeakyReLU(0.2, True)]
-        
+
         stride = 2
         for idx in range(n_layers):
             if idx == n_layers-1:
@@ -20,17 +21,17 @@ class Discriminator_Critic(nn.Module):
             disc += [nn.Conv2d(n_channels, n_channels*2, kernel_size=4, stride=stride, padding=2,bias=False),
                       nn.InstanceNorm2d(n_channels*2, affine=True),
                       nn.LeakyReLU(0.2, True)]
-        
+
         disc += [nn.Conv2d(n_channels*2, 1, kernel_size=4, stride=1, padding=2,bias=False)]
 
         self.disc = nn.Sequential(*disc)
-    
-    def forward(self, img):        
+
+    def forward(self, img):
         return self.disc(img)
-        
+
 
 class Loss_Wasserstein(nn.Module):
-    def __init__(self, alpha, beta,lmbda,Path_d_weights,load=False,device):
+    def __init__(self, alpha, beta,lmbda,Path_d_weights,device,load=False):
         '''
         input:
         -- kappa : coefficient for adversarial loss
@@ -39,7 +40,7 @@ class Loss_Wasserstein(nn.Module):
         -- gamma : coefficient for R1 loss
         -- lmbda : coefficient for gradient penalty for discriminnator
         -- Path_d_weights : path + .pth name to load pretrained weights
-        -- load (default: False): option to load pretrain weights 
+        -- load (default: False): option to load pretrain weights
         '''
         super(Loss_Wasserstein, self).__init__()
         self.alpha = alpha
@@ -59,16 +60,16 @@ class Loss_Wasserstein(nn.Module):
             disc_loss = self.Wasserstein(img, target_img, mask, net_type=net_type)
             gp = self.gradient_penalty(img, target_img)
             return disc_loss +  self.lmbda*gp
-        
+
         gen_loss = self.Wasserstein(img, target_img, mask, net_type=net_type)
         hrfp = self.alpha*self.hrf_perceptual(img, target_img)
         perceptual_loss = self.beta*self.perceptual(img, target_img,mask)
         return gen_loss,hrfp,perceptual_loss,gen_loss+hrfp+perceptual_loss
 
     def init_Wasserstein(self,Path_d_weights,load=False):
-        self.disc = Discriminator_Critic().to(self.device) 
+        self.disc = Discriminator_Critic().to(self.device)
         if load:
-          self.disc.load_state_dict(torch.load(Path_d_weights))
+            self.disc.load_state_dict(torch.load(Path_d_weights))
 
     def Wasserstein(self, img, target_img, mask, net_type):
         if net_type == 'discriminator':
@@ -94,16 +95,16 @@ class Loss_Wasserstein(nn.Module):
         alpha= torch.rand(batch_size,1,1,1).repeat(1, channel, height, width)
         alpha = alpha.to(self.device)
         interpolatted_image=(alpha*target_img) + (1-alpha) * img
-        
+
         # calculate the critic score on the interpolated image
         interpolated_score= self.disc(interpolatted_image)
-        
+
         # take the gradient of the score wrt to the interpolated image
         gradient= torch.autograd.grad(inputs=interpolatted_image,
                                       outputs=interpolated_score,
                                       retain_graph=True,
                                       create_graph=True,
-                                      grad_outputs=torch.ones_like(interpolated_score)                          
+                                      grad_outputs=torch.ones_like(interpolated_score)
                                     )[0]
         gradient= gradient.view(gradient.shape[0],-1)
         gradient_norm= gradient.norm(2,dim=1)
@@ -111,9 +112,9 @@ class Loss_Wasserstein(nn.Module):
         return gradient_penalty
 
     def init_hrf_perceptual(self):
-        orig_resnet = resnet50(pretrained=True) 
+        orig_resnet = resnet50(pretrained=True, device=self.device)
         self.net_encoder = ResnetDilated(orig_resnet, dilate_scale=8).to(self.device)
-        
+
         for param in self.net_encoder.parameters():
             param.require_grad = False
 
@@ -130,7 +131,7 @@ class Loss_Wasserstein(nn.Module):
         self.vgg_layers = torchvision.models.vgg19(pretrained=True).features.to(self.device)
         for param in self.vgg_layers.parameters():
             param.require_grad = False
-    
+
     def perceptual(self, img, target_img,mask):
 
         loss = torch.zeros(img.shape[0]).to(self.device)
@@ -143,5 +144,5 @@ class Loss_Wasserstein(nn.Module):
                 part_loss = F.mse_loss(img, target_img, reduction='none')
                 loss += part_loss.mean(dim=tuple(range(4)[1:]))
                 cnt += 1
-        
+
         return (loss/cnt).sum()

@@ -14,7 +14,7 @@ def train_loop_Wassertstein(model, optimizer_g, optimizer_d, train_dataloader,
     -- optimizer_g : Optimizer of Lama model
     -- optimizer_d : Optimizer of discriminator
     -- train_dataloader : dataloader of training dataset
-    -- test_dataloader : ##NOT IMPLEMENTED YET## dataloader of test dataset           
+    -- test_dataloader : ##NOT IMPLEMENTED YET## dataloader of test dataset
     -- epochs (default : 50) : number of epochs for training our model
     -- val_rate (default : 10) : ##NOT IMPLEMENTED YET## our model will be evaluated every val_rate epochs
     -- sav_rate (default : 10) : our model weights will be saved every sav_rate batches
@@ -28,7 +28,7 @@ def train_loop_Wassertstein(model, optimizer_g, optimizer_d, train_dataloader,
     print('################ TRAINING STARTED ################')
     for epoch in range(epochs):
 
-        Total_loss_g = 0    
+        Total_loss_g = 0
         Total_loss_d = 0
         perceptual_loss = 0
         Total_adv_l=0
@@ -50,7 +50,7 @@ def train_loop_Wassertstein(model, optimizer_g, optimizer_d, train_dataloader,
                 ################### LOSS CALCULATION FUNCTIONS ####################
                 #We update discriminator more times than generator
                 Loss_d = LAMA_loss(image_reconstructed,gt_image,mask,net_type="discriminator")
-                optimizer_d.zero_grad() 
+                optimizer_d.zero_grad()
                 Loss_d.backward(retain_graph=True)
                 optimizer_d.step()
 
@@ -59,13 +59,13 @@ def train_loop_Wassertstein(model, optimizer_g, optimizer_d, train_dataloader,
                         p.data.clamp_(-WEIGHT_CLIP, WEIGHT_CLIP)
 
                 Total_loss_d += Loss_d.item()
-                        
+
 
                 #We update generator less times than generator
-                if i % disc_iter == 0: 
+                if i % disc_iter == 0:
                     gen_loss,HRF_PL_epoch,perceptual_loss,Loss_g = LAMA_loss(image_reconstructed,gt_image,mask,net_type="generator")
 
-                    optimizer_g.zero_grad() 
+                    optimizer_g.zero_grad()
                     Loss_g.backward()
                     optimizer_g.step()
 
@@ -80,8 +80,8 @@ def train_loop_Wassertstein(model, optimizer_g, optimizer_d, train_dataloader,
                 if display_results and i%100 == 0:
                     image_reconstructed = image_reconstructed.detach().cpu()
                     stack = stack.detach().cpu()
-                    saving_image(image_reconstructed,epoch,i,image_base_dir) #save image image        
-                
+                    saving_image(image_reconstructed,epoch,image_base_dir) #save image image
+
                 #####################################################################
                 if i % sav_rate == 0 :  #### we save our model weights every val_rate batches
                     saving_model(model,epoch+1,i,model_base_dir)
