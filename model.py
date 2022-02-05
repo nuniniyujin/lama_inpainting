@@ -21,31 +21,16 @@ class Spectral_transform_block(nn.Module):
     def forward(self, x):
         x_residual = self.relu(self.bn1(self.conv1(x)))
 
-        #fourier unit
-        batch = x_residual.shape[0]
-        fft_dim = (-2, -1)
-        ffted = torch.fft.rfft2(x_residual, norm="ortho")
-        ffted = torch.stack((ffted.real, ffted.imag), dim=-1)
-        ffted = ffted.permute(0, 1, 4, 2, 3).contiguous()  # (batch, c, 2, h, w/2+1)
-        ffted = ffted.view((batch, -1,) + ffted.size()[3:])
+        x = torch.fft.rfft2(x_residual, norm="ortho")
+        x = torch.concat((x.real, x.imag), dim=1)
 
-        ffted = self.conv2(ffted)  # (batch, c*2, h, w/2+1)
-        ffted = self.relu(self.bn2(ffted))
+        x = self.relu(self.bn2(self.conv2(x)))
 
-        ffted = ffted.view((batch, -1, 2,) + ffted.size()[2:]).permute(0, 1, 3, 4, 2).contiguous()  # (batch,c, t, h, w/2+1, 2)
-        ffted = torch.complex(ffted[..., 0], ffted[..., 1])
+        x = torch.complex(x[:, :self.channels_hidden], x[:, self.channels_hidden:])
+        x = torch.fft.irfft2(x, norm="ortho")
 
-        output_FU = torch.fft.irfft2(ffted,norm="ortho")
-
-        #x = torch.fft.rfft2(x_residual,norm="ortho") #ortho norma added
-        #x = torch.concat((x.real, x.imag), dim=1)
-        #x = torch.stack((x.real, x.imag), dim=-1) #changed concat to stack
-        #x = self.relu(self.bn2(self.conv2(x)))
-        #x = torch.complex(x[:, :self.channels_hidden], x[:, self.channels_hidden:])
-        #x = torch.fft.irfft2(x)
-
-        x = output_FU + x_residual
-        x = self.conv1x1(x) #checked
+        x = x + x_residual
+        x = self.conv1x1(x)
         return x
 
 class FFC_block(nn.Module):
