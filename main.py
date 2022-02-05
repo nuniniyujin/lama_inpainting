@@ -67,7 +67,7 @@ if args.checkpoint_path is not None:
 
 train_dataloader = DataLoader(MyDataset(args.data_path), batch_size=args.batch_size)
 
-train_loop(LAMA_Model, optimizer_g, optimizer_d, test_dataloader,
+train_loop(LAMA_Model, optimizer_g, optimizer_d, train_dataloader,
            train_dataloader, LAMA_loss, device, args.model_base_dir,
            args.image_base_dir, start_epoch=args.start_epoch,
            epochs=args.n_epochs)
