@@ -1,8 +1,10 @@
 # MVA Deep Learning project 2021
 
 Team members :
-* Gabriel BAKER : gabriel.baker@telecom-paris.fr
-* Yujin CHO : yujin.cho@ens-paris-saclay.fr
+* Gabriel BAKER : gabriel.baker@telecom-paris.fr :smile:
+* Yujin CHO : yujin.cho@ens-paris-saclay.fr :blush:
+
+We based our work on this awesome work 👀 --> [🦙 LaMa: Resolution-robust Large Mask Inpainting with Fourier Convolutions](https://saic-mdal.github.io/lama-project/)
 
 ## Improvement on Image inpainting with Fourier Convolutions
 
@@ -42,8 +44,33 @@ Result on test image with multiples experiments after 12 hours of training on 18
 
 We used [Place365](http://places2.csail.mit.edu/download.html) dataset : Small images (256 * 256)
 
-### Run training
+### Run training script
+
+You can select which experiment you want to run :
+* baseline
+* conv_change
+* wgan
 
 ```Python
-!python main.py --data_path #Path/of/dataset
+!python main.py --experiment [baseline, conv_change or wgan] --data_path #Path/of/your/dataset
+```
+### Run evaluation
+
+You can select which experiment you want to evaluate :
+* baseline
+* conv_change
+* wgan
+
+
+| experiment  | info | weight link |
+| ------------- | -----|------------- |
+| baseline  | 17 epochs | [link](https://drive.google.com/file/d/1ZPu208Vemx4hzlOQscqnp5In166ndQUP/view?usp=sharing)  |
+| conv_change  | 17 epochs |[link](https://drive.google.com/file/d/1viaxl1sYNSp6wQLDRk2Z1NqFYdKgQWqz/view?usp=sharing)  |
+| wgan  | 22 epochs |[link](https://drive.google.com/file/d/14u2jSNlOqVPa-CrSV-ALHJmc-nd-cNfp/view?usp=sharing)  |
+
+```Python
+
+!python eval.py --experiment baseline \
+                --data_path #Path/of/your/testset \
+                --checkpoint_path #Path/of/your/weight
 ```
