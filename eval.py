@@ -1,5 +1,6 @@
 import argparse
 import lpips
+import pytorch_fid
 import shutil
 from tqdm import tqdm
 import numpy as np
@@ -73,3 +74,5 @@ with tqdm(total=len(test_dataloader), unit_scale=True, postfix={'lpips':0.0}, nc
 
 print('LPIPS mean:', np.mean(metric_list))
 print('LPIPS std:', np.std(metric_list))
+
+pytorch_fid args.data_path args.out_dir
